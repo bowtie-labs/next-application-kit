@@ -1,0 +1,35 @@
+{
+  "name": "bowtie-next-kit",
+  "type": "registry:block",
+  "dependencies": [
+    "@supabase/ssr"
+  ],
+  "devDependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "./.env.example",
+      "content": "\nNEXT_PUBLIC_SUPABASE_URL=\nNEXT_PUBLIC_SUPABASE_ANON_KEY=\n",
+      "type": "registry:example",
+      "target": "~/.env.example"
+    },
+    {
+      "path": "./lib/supabase/client.ts",
+      "content": "\nimport { createBrowserClient } from \"@supabase/ssr\";\n\nexport const createClient = () =>\n  createBrowserClient(\n    process.env.NEXT_PUBLIC_SUPABASE_URL!,\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,\n  );\n",
+      "type": "registry:lib"
+    },
+    {
+      "path": "./lib/supabase/middleware.ts",
+      "content": "\nimport { createServerClient } from \"@supabase/ssr\";\nimport { type NextRequest, NextResponse } from \"next/server\";\n\nexport const createClient = (request: NextRequest) => {\n  // Create an unmodified response\n  let supabaseResponse = NextResponse.next({\n    request: {\n      headers: request.headers,\n    },\n  });\n\n  createServerClient(\n    process.env.NEXT_PUBLIC_SUPABASE_URL!,\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,\n    {\n      cookies: {\n        getAll() {\n          return request.cookies.getAll()\n        },\n        setAll(cookiesToSet) {\n          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))\n          supabaseResponse = NextResponse.next({\n            request,\n          })\n          cookiesToSet.forEach(({ name, value, options }) =>\n            supabaseResponse.cookies.set(name, value, options)\n          )\n        },\n      },\n    },\n  );\n\n  return supabaseResponse\n};\n\n",
+      "type": "registry:lib"
+    },
+    {
+      "path": "./lib/supabase/server.ts",
+      "content": "\nimport { createServerClient } from \"@supabase/ssr\";\nimport { cookies } from \"next/headers\";\n\nexport const createClient = (cookieStore: ReturnType<typeof cookies>) => {\n  return createServerClient(\n    process.env.NEXT_PUBLIC_SUPABASE_URL!,\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,\n    {\n      cookies: {\n        getAll() {\n          return cookieStore.getAll()\n        },\n        setAll(cookiesToSet) {\n          try {\n            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))\n          } catch {\n            // The `setAll` method was called from a Server Component.\n            // This can be ignored if you have middleware refreshing\n            // user sessions.\n          }\n        },\n      },\n    },\n  );\n};\n",
+      "type": "registry:lib"
+    }
+  ],
+  "tailwind": {},
+  "cssVars": {},
+  "meta": {}
+}
